@@ -1,7 +1,7 @@
 name: lucent
 description: "Lucent - a simple, offline budget tracker."
 publish_to: 'none'
-version: 0.2.0+2
+version: 0.3.0+3
 
 environment:
   sdk: ^3.9.0
@@ -24,6 +24,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/fonts/LICENSE.txt
+    - assets/brand/logo-256.png
   fonts:
     - family: Inter
       fonts:

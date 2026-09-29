@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import '../data/models.dart';
 import '../data/store.dart';
 import '../theme.dart';
+import '../version.dart';
 import '../widgets/common.dart';
 import 'category_editor.dart';
 import 'goal_editor.dart';
+import 'licenses.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -88,9 +90,10 @@ class SettingsScreen extends StatelessWidget {
         const SectionTitle('About'),
         ListTile(
           title: const Text('Licenses'),
-          subtitle: const Text('Lucent 0.2.0 \u00b7 works fully offline'),
+          subtitle: const Text('Lucent $appVersion \u00b7 works fully offline'),
           trailing: const Icon(Icons.chevron_right),
-          onTap: () => showLicensePage(context: context, applicationName: 'Lucent'),
+          onTap: () => Navigator.of(context)
+              .push(MaterialPageRoute(builder: (_) => const LicensesScreen())),
         ),
       ],
     );
