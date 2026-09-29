@@ -1,0 +1,5 @@
+# Signing keys and secrets must never be committed
+*.jks
+*.keystore
+key.properties
+.env
