@@ -1,0 +1,5 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- Lucent is fully offline: make sure no library adds network access to the release app. -->
+    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
+</manifest>

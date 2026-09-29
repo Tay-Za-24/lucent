@@ -3,3 +3,14 @@
 *.keystore
 key.properties
 .env
+
+# Flutter / Dart build output (generated, not source)
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+*.iml
+.idea/
+*.log
