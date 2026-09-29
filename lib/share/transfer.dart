@@ -261,6 +261,8 @@ Future<String> sendBundle({
     throw ShareException('The connection was interrupted. Try again.');
   } on FormatException {
     throw ShareException('The other device sent an answer Lucent does not understand.');
+  } on StateError catch (e) {
+    throw ShareException('This device blocked the connection: ${e.message}');
   } finally {
     client.close(force: true);
   }

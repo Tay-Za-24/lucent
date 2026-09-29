@@ -2,8 +2,11 @@
     <!-- Needed for any network socket. Lucent only uses it for "Send to another
          device" on the local Wi-Fi; it never contacts the internet. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- usesCleartextTraffic: the Wi-Fi send talks plain HTTP to the other device on
+         the local network; the data inside is encrypted and authenticated with the PIN. -->
     <application
         android:label="Lucent"
+        android:usesCleartextTraffic="true"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

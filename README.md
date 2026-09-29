@@ -1,6 +1,8 @@
 # Lucent
 
-A minimal, private budget tracker for Android. Everything you enter stays on your phone; the app never uses the internet (the release app doesn't even ask for internet permission).
+A minimal, private budget tracker for Android and Mac. Everything you enter stays on your device. The app never talks to the internet. The only network use is **Send to another device**, which copies your book directly to your own other phone or Mac over your home Wi-Fi, and only while you have that screen open.
+
+> **This is the `macos` branch** (work in progress after 0.3.0): it adds the Mac app and "Send to another device". The main branch is still the Android-only 0.3.0.
 
 ## What the app does (version 0.3.0)
 
@@ -15,6 +17,7 @@ A minimal, private budget tracker for Android. Everything you enter stays on you
 - **Home tab:** the month's Net (money in minus money out) in large type, the In and Out totals, your savings goal, and a progress bar for each budget.
 - **Savings goal (new in 0.3.0):** one monthly goal for the whole book, either a fixed amount (e.g. K 200,000 a month) or a share of the month's income (e.g. 20%). "Saved" means money in minus money out for the month. Home shows how much you've saved against the goal, how much is still to go (or "Goal reached"), and a thin bar. A percentage goal is worked out from this month's total income, rounded to your decimal places; with no income yet it says so instead of pretending the goal is met. If you've spent more than you earned, saved shows as a minus amount and the bar is empty. Set, change or remove it in Settings (or tap "Set goal" / the goal row on Home). Like budgets, a change applies from this month on and past months keep the goal they had; History's month detail shows how each past month did against its goal.
 - **Settings:** change the currency symbol or decimal places, manage categories (add, rename, change color, archive; a category can only be deleted if no entry uses it), pick the theme (follow phone, light or dark), choose the **Budget display** (Progress bars or Ring chart; your choice is remembered), set the **Savings goal**, and view the licences.
+- **Send to another device (this branch):** Settings → *Send to another device*. See *How sending works* below.
 - **Licenses:** a short page with Lucent's own notice, then one line per open-source package with its licence type (e.g. "sqflite — BSD-2"). Tap a line to read that licence in full. The Flutter and Dart SDK parts are grouped into one line; it and the "Full license texts" link open the complete standard list.
 
 ## What's in this folder
@@ -38,7 +41,10 @@ A minimal, private budget tracker for Android. Everything you enter stays on you
 | `lib/money.dart` | Turns typed amounts into whole numbers (e.g. 12.50 is stored as 1250) and formats them for display ("K 1,250"). |
 | `lib/data/models.dart` | Describes a category and an entry. |
 | `lib/data/goal.dart` | The savings goal and the maths behind it (target, saved, still to go). |
-| `lib/data/db.dart` | Creates the on-phone database (SQLite) and its tables: settings, categories, entries, budgets, savings goals. When you update from 0.2.0 it adds the new savings-goal table and keeps all your existing data (database version 1 → 2). |
+| `lib/data/db.dart` | Creates the on-device database (SQLite) and its tables: settings, categories, entries, budgets, savings goals. Upgrades keep all existing data: 1 → 2 added the savings-goal table; 2 → 3 (this branch) gives every record the ID of the device that last changed it, a last-changed time and a "deleted" mark, so two devices can be merged safely. Deleting now only marks a record as deleted. |
+| `lib/data/sync.dart` | Packs the whole book into one bundle (JSON) and merges a bundle from another device: records are matched by their random ID, the newer change wins, deletions carry over, and nothing is doubled. |
+| `lib/share/transfer.dart` | The Wi-Fi send itself: a tiny server on the receiving device, the PIN check and the encryption. |
+| `lib/screens/share.dart` | The *Send to another device*, *Send* and *Receive* screens. |
 | `lib/data/store.dart` | The app's memory and bookkeeper: loads and saves everything, and works out totals (In, Out, Net, spent per category). Totals are always calculated, never stored. |
 | `lib/widgets/common.dart` | Small reusable building blocks: amount text, month title, budget bar and budget row, category color dot, dividers. |
 | `lib/widgets/budget_ring.dart` | The ring (doughnut) chart for the Budgets page, drawn directly by the app (no extra library). |
@@ -46,7 +52,9 @@ A minimal, private budget tracker for Android. Everything you enter stays on you
 | `test/` | Automatic checks: amount parsing and formatting, savings goal maths (percentages, zero income, negative months), upgrading a 0.2.0 database, the Licenses page, plus on-screen walkthroughs (adding income and expenses and seeing them on Home, History, both budget displays, setting a goal). Run with `flutter test`. |
 | `tool/make_icon.py` | Redraws the logo and all Android launcher icons from one set of crystal shapes. Run `python3 tool/make_icon.py` (needs `rsvg-convert`). |
 | `android/` | The Android "wrapper" that turns the code into a phone app: app ID `app.lucent.budget`, name "Lucent", launcher icon (the crystal; an adaptive icon with a separate background, foreground and a one-colour layer for themed icons), and release signing setup. |
-| `android/app/src/release/AndroidManifest.xml` | Makes sure the release app has no internet permission. |
+| `android/app/src/main/AndroidManifest.xml` | Android settings, including the network permission that Send to another device needs (see below). |
+| `macos/` | The Mac "wrapper": app name "Lucent", ID `app.lucent.budget`, the crystal icon, window size, and the permissions for the local network (`Runner/*.entitlements`, `Runner/Info.plist`). |
+| `.github/workflows/macos.yml` | Builds the Mac app on GitHub's Mac computers every time this branch is pushed (or when started by hand) and offers it as a download. |
 | `build/` | Created when you build. Not saved in git. |
 
 ## How to build the installable APK
@@ -70,7 +78,39 @@ You need Flutter (stable), Java 17 and the Android SDK. On the build machine the
 
 Keep the signing key and its password safe: updates must be signed with the same key, or the phone will refuse to install them over the old version.
 
+## Mac app (this branch)
+
+The Mac app is built automatically by GitHub, because building it needs a Mac.
+
+1. **Download:** open the repository on GitHub → **Actions** → **macOS build** → the newest run with a green tick. At the bottom, under *Artifacts*, download **Lucent-macos** (you must be signed in to GitHub). You get `Lucent-macos.zip`; double-click it (if your browser didn't unzip it already) to get `Lucent.app`, and drag that into *Applications*.
+2. **First launch:** the app isn't signed with an Apple developer certificate, so macOS will refuse a normal double-click. Instead **right-click (or Control-click) Lucent → Open → Open**. You only do this once. On newer macOS versions, if there's no *Open* button, try to open it once, then go to **System Settings → Privacy & Security**, scroll down and click **Open Anyway**.
+3. **Local network permission:** the first time you use *Send* or *Receive*, macOS asks whether Lucent may find and connect to devices on your local network. Click **Allow**. If you clicked *Don't Allow*, turn it on in **System Settings → Privacy & Security → Local Network**. macOS may also ask whether Lucent may accept incoming connections (when receiving): click **Allow**.
+
+The Mac app works like the phone app, in a phone-width column in the middle of the window. Its data is stored separately on the Mac; use *Send to another device* to copy your book across.
+
+## How sending works
+
+Use it to copy your book from your phone to your Mac (or the other way round, or phone to phone). Both devices need this version and must be on the **same Wi-Fi**.
+
+1. On the device that should **get** the data: Settings → **Send to another device** → **Receive**. It shows an address (like `192.168.1.20:40123`) and a 6-digit **PIN**. Keep that screen open.
+2. On the device that **has** the data: Settings → **Send to another device** → **Send**, type the address and the PIN, and tap **Send**.
+3. Both screens show the result, e.g. "Received 132 entries (120 new, 12 updated, 0 removed, 0 already here)".
+
+What happens to the data:
+
+- Everything is sent: categories, entries, budgets, the savings goal, and the currency symbol and decimal places.
+- Nothing is doubled. Every record has its own random ID; if the other device already has it, the newer change is kept. Something you deleted on the sending device is deleted on the receiving one too (unless it was changed there more recently). Sending the same data twice changes nothing.
+- If both devices were set up separately and each has a category with the same name and type (e.g. "Food"), they are treated as the same category.
+- If the two devices use different **decimal places**, nothing is imported and both screens say so; change one of them in Settings first. A different **currency symbol** is only a warning (amounts are copied as they are). A device that has no amounts yet simply takes over the sender's currency settings.
+
+Privacy and safety:
+
+- The devices talk to each other directly over your Wi-Fi. There's no server and nothing goes over the internet. The receiving device only listens while its Receive screen is open, and stops after one transfer, after 3 wrong PINs, or after 5 minutes.
+- The PIN is never sent. Both devices turn it into a key, and the data is encrypted with it (AES-256-GCM), so others on the Wi-Fi can't read it and any change on the way is detected. Someone on the same Wi-Fi who records the transfer could in theory try all million PINs offline, so only send on a network you trust (your home Wi-Fi).
+- **Android permission:** to open any network connection Android needs the *internet* permission, so this version asks for it. Lucent still never contacts the internet; it only connects to the address you type in, on your local network.
+- There is no automatic finding of devices yet and no QR code: you type the address and PIN.
+
 ## Checks
 
 - `flutter analyze` checks the code for mistakes.
-- `flutter test` runs the automatic checks.
+- `flutter test` runs the automatic checks, including the merge rules (newer wins, deletions, no duplicates, currency checks) and a full send between two copies of the app on the same computer.

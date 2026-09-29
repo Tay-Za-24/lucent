@@ -46,7 +46,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Text('A calm, simple way to track what comes in and what goes out each month.',
                 style: t.body.copyWith(color: c.textSecondary)),
             const SizedBox(height: 16),
-            Text('Everything stays on this phone. No account, no internet.',
+            Text('Everything stays on this device. No account, no internet.',
                 style: t.body.copyWith(color: c.textSecondary)),
           ],
         );
