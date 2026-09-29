@@ -36,6 +36,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         body = ListView(
           padding: const EdgeInsets.fromLTRB(16, 64, 16, 16),
           children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Image.asset('assets/brand/logo-256.png', width: 64, height: 64),
+            ),
+            const SizedBox(height: 24),
             Text('Lucent', style: t.displayAmount),
             const SizedBox(height: 16),
             Text('A calm, simple way to track what comes in and what goes out each month.',
