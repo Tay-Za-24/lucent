@@ -58,6 +58,8 @@ void main() {
     await onboard(tester);
     await tapAndSettle(tester, nav('Settings'));
     await tester.scrollUntilVisible(find.text('Licenses'), 200);
+    await tester.ensureVisible(find.text('Licenses'));
+    await tester.pumpAndSettle();
     await tapAndSettle(tester, find.text('Licenses'));
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 50)),

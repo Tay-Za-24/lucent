@@ -21,6 +21,8 @@ const _pubPackages = {
   'clock',
   'collection',
   'crypto',
+  'cryptography',
+  'ffi',
   'fixnum',
   'material_color_utilities',
   'meta',

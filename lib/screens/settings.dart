@@ -8,6 +8,7 @@ import '../widgets/common.dart';
 import 'category_editor.dart';
 import 'goal_editor.dart';
 import 'licenses.dart';
+import 'share.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -59,6 +60,14 @@ class SettingsScreen extends StatelessWidget {
           ),
           onTap: () => showGoalEditor(context),
         ),
+        const SectionTitle('Devices'),
+        ListTile(
+          title: const Text('Send to another device'),
+          subtitle: const Text('Copy this book to your phone or computer over Wi-Fi'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context)
+              .push(MaterialPageRoute(builder: (_) => const ShareScreen())),
+        ),
         const SectionTitle('Appearance'),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -90,7 +99,7 @@ class SettingsScreen extends StatelessWidget {
         const SectionTitle('About'),
         ListTile(
           title: const Text('Licenses'),
-          subtitle: const Text('Lucent $appVersion \u00b7 works fully offline'),
+          subtitle: const Text('Lucent $appVersion \u00b7 never uses the internet'),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.of(context)
               .push(MaterialPageRoute(builder: (_) => const LicensesScreen())),
