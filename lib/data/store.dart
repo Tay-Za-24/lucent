@@ -7,6 +7,9 @@ import 'models.dart';
 
 const _uuid = Uuid();
 
+/// How the Budgets tab visualises spending.
+enum BudgetDisplay { bars, ring }
+
 /// Budget status of one expense category for the selected month.
 class BudgetLine {
   BudgetLine(this.category, this.limit, this.spent);
@@ -27,6 +30,7 @@ class AppStore extends ChangeNotifier {
   String currency = 'K';
   int decimals = 0;
   ThemeMode themeMode = ThemeMode.system;
+  BudgetDisplay budgetDisplay = BudgetDisplay.bars;
 
   List<Category> categories = [];
   Set<String> usedCategoryIds = {};
@@ -58,6 +62,10 @@ class AppStore extends ChangeNotifier {
       (t) => t.name == m['theme'],
       orElse: () => ThemeMode.system,
     );
+    budgetDisplay = BudgetDisplay.values.firstWhere(
+      (b) => b.name == m['budget_display'],
+      orElse: () => BudgetDisplay.bars,
+    );
   }
 
   Future<void> _setSetting(String key, String value) => _db.insert('settings', {
@@ -85,6 +93,12 @@ class AppStore extends ChangeNotifier {
     decimals = d;
     await _setSetting('decimals', '$d');
     await _loadMonth();
+  }
+
+  Future<void> setBudgetDisplay(BudgetDisplay d) async {
+    budgetDisplay = d;
+    await _setSetting('budget_display', d.name);
+    notifyListeners();
   }
 
   Future<void> setThemeMode(ThemeMode m) async {

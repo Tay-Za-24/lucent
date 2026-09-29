@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/models.dart';
+import '../data/store.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'category_editor.dart';
@@ -59,10 +60,25 @@ class SettingsScreen extends StatelessWidget {
             onSelectionChanged: (v) => s.setThemeMode(v.first),
           ),
         ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Text('Budget display', style: t.label),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: SegmentedButton<BudgetDisplay>(
+            segments: const [
+              ButtonSegment(value: BudgetDisplay.bars, label: Text('Progress bars')),
+              ButtonSegment(value: BudgetDisplay.ring, label: Text('Ring chart')),
+            ],
+            selected: {s.budgetDisplay},
+            onSelectionChanged: (v) => s.setBudgetDisplay(v.first),
+          ),
+        ),
         const SectionTitle('About'),
         ListTile(
           title: const Text('Licenses'),
-          subtitle: const Text('Lucent 0.1.0 \u00b7 works fully offline'),
+          subtitle: const Text('Lucent 0.2.0 \u00b7 works fully offline'),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => showLicensePage(context: context, applicationName: 'Lucent'),
         ),

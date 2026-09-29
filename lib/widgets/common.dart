@@ -10,7 +10,7 @@ import '../theme.dart';
 /// dependents when the store changes.
 class StoreScope extends InheritedNotifier<AppStore> {
   const StoreScope({super.key, required AppStore store, required super.child})
-      : super(notifier: store);
+    : super(notifier: store);
 
   static AppStore of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<StoreScope>()!.notifier!;
@@ -22,8 +22,14 @@ class StoreScope extends InheritedNotifier<AppStore> {
 
 /// Amount with the currency symbol rendered at ~60% size in the secondary color.
 class MoneyText extends StatelessWidget {
-  const MoneyText(this.minor,
-      {super.key, required this.style, this.plus = false, this.color, this.textAlign});
+  const MoneyText(
+    this.minor, {
+    super.key,
+    required this.style,
+    this.plus = false,
+    this.color,
+    this.textAlign,
+  });
 
   final int minor;
   final TextStyle style;
@@ -40,20 +46,23 @@ class MoneyText extends StatelessWidget {
     final sign = minor < 0 ? minus : (plus ? '+' : '');
     final sym = s.currency;
     return Text.rich(
-      TextSpan(children: [
-        if (sign.isNotEmpty) TextSpan(text: sign),
-        if (sym.isNotEmpty)
-          TextSpan(
-            text: '$sym${big ? '\u2009' : ' '}',
-            style: big
-                ? base.copyWith(
-                    fontSize: (style.fontSize ?? 16) * 0.6,
-                    color: color ?? c.textSecondary,
-                    letterSpacing: 0)
-                : null,
-          ),
-        TextSpan(text: formatNumber(minor, s.decimals)),
-      ]),
+      TextSpan(
+        children: [
+          if (sign.isNotEmpty) TextSpan(text: sign),
+          if (sym.isNotEmpty)
+            TextSpan(
+              text: '$sym${big ? '\u2009' : ' '}',
+              style: big
+                  ? base.copyWith(
+                      fontSize: (style.fontSize ?? 16) * 0.6,
+                      color: color ?? c.textSecondary,
+                      letterSpacing: 0,
+                    )
+                  : null,
+            ),
+          TextSpan(text: formatNumber(minor, s.decimals)),
+        ],
+      ),
       style: base,
       textAlign: textAlign,
       maxLines: 1,
@@ -114,11 +123,13 @@ class BudgetBar extends StatelessWidget {
   }
 }
 
-/// Name, "left / over" text, bar, and "spent of limit" caption for one budget.
+/// One budget: name and "spent of limit" on the left; "left / over" on the
+/// right with a thin progress bar directly below it (unless [showBar] is off).
 class BudgetRow extends StatelessWidget {
-  const BudgetRow({super.key, required this.line, this.onTap});
+  const BudgetRow({super.key, required this.line, this.onTap, this.showBar = true});
   final BudgetLine line;
   final VoidCallback? onTap;
+  final bool showBar;
 
   @override
   Widget build(BuildContext context) {
@@ -127,36 +138,60 @@ class BudgetRow extends StatelessWidget {
     final t = context.text;
     final limit = line.limit;
     String fmt(int v) => formatMoney(v, s.currency, s.decimals);
+    final String? caption = limit != null
+        ? '${fmt(line.spent)} of ${fmt(limit)} spent'
+        : (line.spent > 0 ? '${fmt(line.spent)} spent' : null);
+    final Widget status;
+    if (limit == null) {
+      status = Text('No limit', style: t.caption);
+    } else {
+      final over = line.left < 0;
+      final label = over ? 'Over by ${fmt(-line.left)}' : '${fmt(line.left)} left';
+      final style = over ? t.bodyAmount.copyWith(color: c.over) : t.bodyAmount;
+      // The bar is exactly as wide as the "left" text above it.
+      final width = (TextPainter(
+        text: TextSpan(text: label, style: style),
+        textDirection: Directionality.of(context),
+        textScaler: MediaQuery.textScalerOf(context),
+        maxLines: 1,
+      )..layout()).width;
+      status = Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Text(label, style: style, maxLines: 1),
+          if (showBar) ...[
+            const SizedBox(height: 6),
+            SizedBox(
+              width: width,
+              child: BudgetBar(spent: line.spent, limit: limit),
+            ),
+          ],
+        ],
+      );
+    }
     return InkWell(
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        child: Column(
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                CategoryDot(line.category),
-                const SizedBox(width: 8),
-                Expanded(child: Text(line.category.name, style: t.body)),
-                if (limit == null)
-                  Text('No limit', style: t.caption)
-                else if (line.left >= 0)
-                  Text('${fmt(line.left)} left', style: t.bodyAmount)
-                else
-                  Text('Over by ${fmt(-line.left)}',
-                      style: t.bodyAmount.copyWith(color: c.over)),
-              ],
+            Padding(padding: const EdgeInsets.only(top: 7), child: CategoryDot(line.category)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(line.category.name, style: t.body),
+                  if (caption != null) ...[
+                    const SizedBox(height: 2),
+                    Text(caption, style: t.caption),
+                  ],
+                ],
+              ),
             ),
-            if (limit != null) ...[
-              const SizedBox(height: 8),
-              BudgetBar(spent: line.spent, limit: limit),
-              const SizedBox(height: 8),
-              Text('${fmt(line.spent)} of ${fmt(limit)} spent', style: t.caption),
-            ] else if (line.spent > 0) ...[
-              const SizedBox(height: 4),
-              Text('${fmt(line.spent)} spent', style: t.caption),
-            ],
+            const SizedBox(width: 16),
+            status,
           ],
         ),
       ),
@@ -171,15 +206,15 @@ class CategoryDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: category == null
-              ? context.colors.textTertiary
-              : context.colors.category(category!.color),
-          shape: BoxShape.circle,
-        ),
-      );
+    width: size,
+    height: size,
+    decoration: BoxDecoration(
+      color: category == null
+          ? context.colors.textTertiary
+          : context.colors.category(category!.color),
+      shape: BoxShape.circle,
+    ),
+  );
 }
 
 /// Hairline divider inset 16 from the leading edge.
@@ -196,12 +231,14 @@ class SectionTitle extends StatelessWidget {
   final Widget? trailing;
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 24, 8, 8),
-        child: Row(children: [
-          Expanded(child: Text(text, style: context.text.title)),
-          ?trailing,
-        ]),
-      );
+    padding: const EdgeInsets.fromLTRB(16, 24, 8, 8),
+    child: Row(
+      children: [
+        Expanded(child: Text(text, style: context.text.title)),
+        ?trailing,
+      ],
+    ),
+  );
 }
 
 class EmptyState extends StatelessWidget {
@@ -209,11 +246,13 @@ class EmptyState extends StatelessWidget {
   final String message;
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 48),
-        child: Text(message,
-            textAlign: TextAlign.center,
-            style: context.text.body.copyWith(color: context.colors.textSecondary)),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 48),
+    child: Text(
+      message,
+      textAlign: TextAlign.center,
+      style: context.text.body.copyWith(color: context.colors.textSecondary),
+    ),
+  );
 }
 
 /// Centers content at max 720 wide on large screens.
@@ -222,9 +261,6 @@ class MaxWidth extends StatelessWidget {
   final Widget child;
   @override
   Widget build(BuildContext context) => Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 720),
-          child: child,
-        ),
-      );
+    child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 720), child: child),
+  );
 }

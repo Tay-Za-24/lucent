@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../data/store.dart';
 import '../money.dart';
 import '../theme.dart';
+import '../widgets/budget_ring.dart';
 import '../widgets/common.dart';
 
 /// Monthly limits per expense category: spent vs limit and what's left.
@@ -18,11 +19,13 @@ class BudgetsScreen extends StatelessWidget {
     final withLimit = lines.where((l) => l.limit != null);
     final totalLimit = withLimit.fold<int>(0, (a, l) => a + l.limit!);
     final totalSpent = withLimit.fold<int>(0, (a, l) => a + l.spent);
+    final ring = s.budgetDisplay == BudgetDisplay.ring;
     return ListView(
       padding: const EdgeInsets.only(bottom: 48),
       children: [
         const MonthTitle(),
-        if (withLimit.isNotEmpty) ...[
+        if (ring) BudgetRing(lines: lines, totalLimit: totalLimit),
+        if (!ring && withLimit.isNotEmpty) ...[
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: Text(
@@ -55,7 +58,11 @@ class BudgetsScreen extends StatelessWidget {
         if (lines.isEmpty) const EmptyState('No expense categories yet. Add one in Settings.'),
         for (var i = 0; i < lines.length; i++) ...[
           const Hairline(indent: 0),
-          BudgetRow(line: lines[i], onTap: () => _editLimit(context, lines[i])),
+          BudgetRow(
+            line: lines[i],
+            showBar: !ring,
+            onTap: () => _editLimit(context, lines[i]),
+          ),
         ],
         if (lines.isNotEmpty) const Hairline(indent: 0),
       ],
