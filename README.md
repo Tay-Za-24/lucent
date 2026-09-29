@@ -2,14 +2,18 @@
 
 A minimal, private budget tracker for Android. Everything you enter stays on your phone; the app never uses the internet (the release app doesn't even ask for internet permission).
 
-## What the app does (version 0.1.0)
+## What the app does (version 0.2.0)
 
 - **First-run setup:** a welcome screen, then you pick your currency symbol (anything you like, e.g. `K` or `$`) and whether amounts use 0 or 2 decimal places. Then you create your own categories. Nothing is pre-filled; you need at least one expense and one income category to start.
-- **Entries:** add, edit or delete an expense or income: amount, category, date (today unless you change it) and an optional note.
-- **Entries tab:** every entry for the chosen month, grouped by day, newest first. Arrows at the top switch months.
-- **Budgets tab:** give any expense category a monthly limit (optional). You see what's been spent, what's left, or how much you're over. Each month starts fresh on the 1st; unspent money doesn't roll over. A limit you set applies to that month and later months until you change it, and past months keep their own limits, so you can look back.
+- **Entries:** add, edit or delete an expense or income: amount, category, date (today unless you change it; it can't be later than this month) and an optional note. If something is missing (no amount or no category), a message says what to fix instead of nothing happening.
+- **Always this month:** Home, Entries and Budgets only ever show the current month, with its name at the top. There's no switching between months; when a new month begins, these screens start fresh on the 1st. Earlier months live in the History tab.
+- **Entries tab:** every entry for this month, grouped by day, newest first. Tap one to edit it.
+- **Budgets tab:** give any expense category a monthly limit (optional). You see what's been spent, what's left, or how much you're over. Each month starts fresh on the 1st; unspent money doesn't roll over. A limit you set applies to this month and later months until you change it, and past months keep their own limits, so you can look back in History. The page can show its numbers in two ways (see *Budget display* under Settings):
+  - **Progress bars** (the default): each category shows how much is left, with a thin bar right underneath that fills up as you spend (it turns amber near the limit and red when you go over).
+  - **Ring chart:** a doughnut-shaped ring at the top, with one colored slice per expense category sized by how much you spent on it this month. The total spent (and what's left of your budgets) is written in the middle, and a list below the ring shows each category's name, share and amount. The category rows below then have no bars.
+- **History tab:** a list of past months (newest first) that have entries or budgets, each with its In, Out and Net. Tap a month to see its details: the totals, how each budget went (spent against its limit), and all its entries grouped by day. History is read-only, so past months can't be changed by accident.
 - **Home tab:** the month's Net (money in minus money out) in large type, the In and Out totals, and a progress bar for each budget.
-- **Settings:** change the currency symbol or decimal places, manage categories (add, rename, change color, archive; a category can only be deleted if no entry uses it), pick the theme (follow phone, light or dark), and view the licences.
+- **Settings:** change the currency symbol or decimal places, manage categories (add, rename, change color, archive; a category can only be deleted if no entry uses it), pick the theme (follow phone, light or dark), choose the **Budget display** (Progress bars or Ring chart; your choice is remembered), and view the licences.
 
 ## What's in this folder
 
@@ -31,9 +35,10 @@ A minimal, private budget tracker for Android. Everything you enter stays on you
 | `lib/data/models.dart` | Describes a category and an entry. |
 | `lib/data/db.dart` | Creates the on-phone database (SQLite) and its tables: settings, categories, entries, budgets. |
 | `lib/data/store.dart` | The app's memory and bookkeeper: loads and saves everything, and works out totals (In, Out, Net, spent per category). Totals are always calculated, never stored. |
-| `lib/widgets/common.dart` | Small reusable building blocks: amount text, month switcher, budget bar, category color dot, dividers. |
-| `lib/screens/` | One file per screen: `onboarding.dart` (first-run setup), `home_shell.dart` (bottom tabs), `home.dart`, `transactions.dart` (Entries tab), `entry_form.dart` (add/edit entry), `budgets.dart`, `settings.dart` (also the categories list), `category_editor.dart` (the add/edit category box). |
-| `test/` | Automatic checks for amount parsing and formatting. Run with `flutter test`. |
+| `lib/widgets/common.dart` | Small reusable building blocks: amount text, month title, budget bar and budget row, category color dot, dividers. |
+| `lib/widgets/budget_ring.dart` | The ring (doughnut) chart for the Budgets page, drawn directly by the app (no extra library). |
+| `lib/screens/` | One file per screen: `onboarding.dart` (first-run setup), `home_shell.dart` (bottom tabs), `home.dart`, `transactions.dart` (Entries tab), `entry_form.dart` (add/edit entry), `budgets.dart`, `history.dart` (History tab and the past-month detail), `settings.dart` (also the categories list), `category_editor.dart` (the add/edit category box). |
+| `test/` | Automatic checks: amount parsing and formatting, plus on-screen walkthroughs (adding income and expenses and seeing them on Home, History, both budget displays). Run with `flutter test`. |
 | `android/` | The Android "wrapper" that turns the code into a phone app: app ID `app.lucent.budget`, name "Lucent", launcher icon (a plain "L"), and release signing setup. |
 | `android/app/src/release/AndroidManifest.xml` | Makes sure the release app has no internet permission. |
 | `build/` | Created when you build. Not saved in git. |
@@ -55,7 +60,7 @@ You need Flutter (stable), Java 17 and the Android SDK. On the build machine the
    flutter pub get
    flutter build apk --release
    ```
-3. **Result:** `build/app/outputs/flutter-apk/app-release.apk`. It works on any modern Android phone (one "universal" file). Copy it to the phone and open it to install (you may need to allow "install unknown apps").
+3. **Result:** `build/app/outputs/flutter-apk/app-release.apk`. Installing a newer version over an older one keeps all your data, as long as both were signed with the same key. It works on any modern Android phone (one "universal" file). Copy it to the phone and open it to install (you may need to allow "install unknown apps").
 
 Keep the signing key and its password safe: updates must be signed with the same key, or the phone will refuse to install them over the old version.
 
