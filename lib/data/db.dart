@@ -4,7 +4,13 @@ import 'package:sqflite/sqflite.dart';
 /// Current database schema version.
 ///  1: 0.1.0 / 0.2.0 (settings, categories, entries, budgets)
 ///  2: 0.3.0 adds savings_goals
-const dbVersion = 2;
+///  3: sync metadata (updated_at, device_id, deleted_at) on every data table
+const dbVersion = 3;
+
+/// Tables that travel between devices. Each row has a random (or natural,
+/// for savings_goals: the month) ID, the device that last changed it, its
+/// last-modified time and a soft-delete time.
+const syncTables = ['categories', 'entries', 'budgets', 'savings_goals'];
 
 /// Opens (and on first run creates) the local SQLite database file.
 /// Older files are upgraded step by step, keeping all existing data.
@@ -17,11 +23,29 @@ Future<Database> openLucentDb({String? path, int version = dbVersion}) async {
     onCreate: (db, v) async {
       await _createV1(db);
       if (v >= 2) await _createV2(db);
+      if (v >= 3) await _upgradeV3(db);
     },
     onUpgrade: (db, from, to) async {
       if (from < 2 && to >= 2) await _createV2(db);
+      if (from < 3 && to >= 3) await _upgradeV3(db);
     },
   );
+}
+
+/// v3: adds sync metadata to every data table. Existing rows keep their data;
+/// their last-modified time becomes their creation time (or now, for tables
+/// without one) and they are marked as live (not deleted).
+Future<void> _upgradeV3(DatabaseExecutor db) async {
+  final now = DateTime.now().millisecondsSinceEpoch;
+  for (final t in syncTables) {
+    await db.execute('ALTER TABLE $t ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0');
+    await db.execute('ALTER TABLE $t ADD COLUMN device_id TEXT');
+    await db.execute('ALTER TABLE $t ADD COLUMN deleted_at INTEGER');
+  }
+  await db.execute('UPDATE categories SET updated_at = created_at');
+  await db.execute('UPDATE entries SET updated_at = created_at');
+  await db.execute('UPDATE budgets SET updated_at = $now');
+  await db.execute('UPDATE savings_goals SET updated_at = $now');
 }
 
 /// v2: one savings goal for the book. Like budgets, a row applies from
