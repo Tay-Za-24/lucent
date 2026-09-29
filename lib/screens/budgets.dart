@@ -21,10 +21,7 @@ class BudgetsScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.only(bottom: 48),
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-          child: MonthSwitcher(),
-        ),
+        const MonthTitle(),
         if (withLimit.isNotEmpty) ...[
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),

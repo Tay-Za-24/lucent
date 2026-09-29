@@ -125,7 +125,15 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
       return;
     }
     HapticFeedback.selectionClick();
-    if (mounted) Navigator.of(context).pop();
+    if (!mounted) return;
+    final now = DateTime.now();
+    if (_date.year != now.year || _date.month != now.month) {
+      // Past months are only visible in History.
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Saved to ${DateFormat('MMMM yyyy').format(_date)}. See History.')),
+      );
+    }
+    Navigator.of(context).pop();
   }
 
   Future<void> _delete() async {
@@ -145,12 +153,19 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
     if (mounted) Navigator.of(context).pop();
   }
 
+  DateTime _latestDate() {
+    final now = DateTime.now();
+    final end = DateTime(now.year, now.month + 1, 0);
+    return _date.isAfter(end) ? _date : end;
+  }
+
   Future<void> _pickDate() async {
     final d = await showDatePicker(
       context: context,
       initialDate: _date,
       firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
+      // Home only shows the current month, so no future months.
+      lastDate: _latestDate(),
     );
     if (d != null) setState(() => _date = d);
   }

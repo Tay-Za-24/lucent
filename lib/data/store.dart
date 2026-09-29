@@ -152,34 +152,80 @@ class AppStore extends ChangeNotifier {
   }
 
   // ---------- Month & entries ----------
-  Future<void> setMonth(DateTime m) async {
-    month = DateTime(m.year, m.month);
+  /// Home, Entries and Budgets always show the current calendar month.
+  /// Called after changes and when the app comes back to the foreground, so a
+  /// new month starts fresh on the 1st even if the app stayed open.
+  Future<void> refreshMonth() async {
+    final now = DateTime.now();
+    month = DateTime(now.year, now.month);
     await _loadMonth();
   }
 
-  Future<void> shiftMonth(int delta) => setMonth(DateTime(month.year, month.month + delta));
-
   Future<void> _loadMonth() async {
-    final key = monthKey(month);
+    final d = await monthData(month);
+    monthEntries = d.entries;
+    limits = d.limits;
+    notifyListeners();
+  }
+
+  /// Entries and budget limits of any month (used by History, read-only).
+  Future<MonthData> monthData(DateTime m) async {
+    final key = monthKey(m);
     final rows = await _db.query(
       'entries',
       where: 'date LIKE ?',
       whereArgs: ['$key-%'],
       orderBy: 'date DESC, created_at DESC',
     );
-    monthEntries = rows.map(Entry.fromRow).toList();
     // Latest budget row at or before this month wins, per category.
     final b = await _db.query('budgets', where: 'month <= ?', whereArgs: [key], orderBy: 'month');
     final l = <String, int?>{};
     for (final r in b) {
       l[r['category_id'] as String] = r['amount'] as int?;
     }
-    limits = {
-      for (final e in l.entries)
-        if (e.value != null) e.key: e.value!,
-    };
-    notifyListeners();
+    return MonthData(
+      DateTime(m.year, m.month),
+      rows.map(Entry.fromRow).toList(),
+      {
+        for (final e in l.entries)
+          if (e.value != null) e.key: e.value!,
+      },
+    );
   }
+
+  /// Past months (before the current one) that have entries or had a budget
+  /// set, most recent first, with their totals.
+  Future<List<MonthSummary>> pastMonths() async {
+    final now = DateTime.now();
+    final current = monthKey(DateTime(now.year, now.month));
+    final rows = await _db.rawQuery(
+      "SELECT substr(date, 1, 7) AS m, "
+      "SUM(CASE WHEN kind = 'income' THEN amount ELSE 0 END) AS inc, "
+      "SUM(CASE WHEN kind = 'expense' THEN amount ELSE 0 END) AS exp "
+      'FROM entries WHERE substr(date, 1, 7) < ? GROUP BY m',
+      [current],
+    );
+    final byKey = <String, MonthSummary>{
+      for (final r in rows)
+        r['m'] as String: MonthSummary(
+          _parseMonthKey(r['m'] as String),
+          (r['inc'] as int?) ?? 0,
+          (r['exp'] as int?) ?? 0,
+        ),
+    };
+    final b = await _db.rawQuery(
+      'SELECT DISTINCT month FROM budgets WHERE month < ? AND amount IS NOT NULL',
+      [current],
+    );
+    for (final r in b) {
+      final k = r['month'] as String;
+      byKey.putIfAbsent(k, () => MonthSummary(_parseMonthKey(k), 0, 0));
+    }
+    return byKey.values.toList()..sort((a, b) => b.month.compareTo(a.month));
+  }
+
+  static DateTime _parseMonthKey(String k) =>
+      DateTime(int.parse(k.substring(0, 4)), int.parse(k.substring(5, 7)));
 
   Future<void> saveEntry({
     String? id,
@@ -207,16 +253,13 @@ class AppStore extends ChangeNotifier {
     }
     usedCategoryIds.add(categoryId);
     await _loadCategories();
-    // Show the month the entry belongs to, so Home and Entries reflect it
-    // right away (previously the list could stay on another month).
-    month = DateTime(e.date.year, e.date.month);
-    await _loadMonth();
+    await refreshMonth();
   }
 
   Future<void> deleteEntry(String id) async {
     await _db.delete('entries', where: 'id = ?', whereArgs: [id]);
     await _loadCategories();
-    await _loadMonth();
+    await refreshMonth();
   }
 
   // ---------- Budgets ----------
@@ -241,19 +284,34 @@ class AppStore extends ChangeNotifier {
   }
 
   // ---------- Computed totals (never stored) ----------
+  MonthData get current => MonthData(month, monthEntries, limits);
+  int get totalIn => current.totalIn;
+  int get totalOut => current.totalOut;
+  int get net => totalIn - totalOut;
+  int spentIn(String categoryId) => current.spentIn(categoryId);
+  List<BudgetLine> budgetLines() => current.budgetLines(categories);
+}
+
+/// One month's entries and limits, with totals computed on the fly.
+class MonthData {
+  MonthData(this.month, this.entries, this.limits);
+  final DateTime month;
+  final List<Entry> entries;
+  final Map<String, int> limits;
+
   int get totalIn =>
-      monthEntries.where((e) => e.kind == Kind.income).fold(0, (s, e) => s + e.amount);
+      entries.where((e) => e.kind == Kind.income).fold(0, (s, e) => s + e.amount);
   int get totalOut =>
-      monthEntries.where((e) => e.kind == Kind.expense).fold(0, (s, e) => s + e.amount);
+      entries.where((e) => e.kind == Kind.expense).fold(0, (s, e) => s + e.amount);
   int get net => totalIn - totalOut;
 
-  int spentIn(String categoryId) => monthEntries
+  int spentIn(String categoryId) => entries
       .where((e) => e.kind == Kind.expense && e.categoryId == categoryId)
       .fold(0, (s, e) => s + e.amount);
 
-  /// Expense categories to show on the budgets screen: active ones, plus
-  /// archived ones that still have spending or a limit this month.
-  List<BudgetLine> budgetLines() => categories
+  /// Expense categories to show: active ones, plus archived ones that still
+  /// have spending or a limit this month.
+  List<BudgetLine> budgetLines(List<Category> categories) => categories
       .where(
         (c) =>
             c.kind == Kind.expense &&
@@ -261,4 +319,13 @@ class AppStore extends ChangeNotifier {
       )
       .map((c) => BudgetLine(c, limits[c.id], spentIn(c.id)))
       .toList();
+}
+
+/// A past month's totals for the History list.
+class MonthSummary {
+  MonthSummary(this.month, this.totalIn, this.totalOut);
+  final DateTime month;
+  final int totalIn;
+  final int totalOut;
+  int get net => totalIn - totalOut;
 }

@@ -63,38 +63,19 @@ class MoneyText extends StatelessWidget {
   }
 }
 
-/// "‹  September 2026  ›"
-class MonthSwitcher extends StatelessWidget {
-  const MonthSwitcher({super.key});
+/// Static month title, e.g. "September 2026".
+class MonthTitle extends StatelessWidget {
+  const MonthTitle({super.key, this.month});
+
+  /// Defaults to the store's current month.
+  final DateTime? month;
 
   @override
   Widget build(BuildContext context) {
-    final s = StoreScope.of(context);
-    final now = DateTime.now();
-    final isCurrent = s.month.year == now.year && s.month.month == now.month;
-    return Row(
-      children: [
-        IconButton(
-          tooltip: 'Previous month',
-          icon: const Icon(Icons.chevron_left),
-          onPressed: () => s.shiftMonth(-1),
-        ),
-        Expanded(
-          child: GestureDetector(
-            onTap: isCurrent ? null : () => s.setMonth(now),
-            child: Text(
-              DateFormat('MMMM yyyy').format(s.month),
-              textAlign: TextAlign.center,
-              style: context.text.label,
-            ),
-          ),
-        ),
-        IconButton(
-          tooltip: 'Next month',
-          icon: const Icon(Icons.chevron_right),
-          onPressed: () => s.shiftMonth(1),
-        ),
-      ],
+    final m = month ?? StoreScope.of(context).month;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+      child: Text(DateFormat('MMMM yyyy').format(m), style: context.text.label),
     );
   }
 }

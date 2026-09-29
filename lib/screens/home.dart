@@ -16,10 +16,7 @@ class HomeScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.only(bottom: 96),
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-          child: MonthSwitcher(),
-        ),
+        const MonthTitle(),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
           child: Text('Net', style: t.caption),
