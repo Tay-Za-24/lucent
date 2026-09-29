@@ -5,6 +5,7 @@ import '../data/store.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'category_editor.dart';
+import 'goal_editor.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -46,6 +47,15 @@ class SettingsScreen extends StatelessWidget {
           trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.of(context)
               .push(MaterialPageRoute(builder: (_) => const CategoriesScreen())),
+        ),
+        const Hairline(),
+        ListTile(
+          title: const Text('Savings goal'),
+          trailing: Text(
+            s.goal == null ? 'Off' : goalLabel(s.goal!, s.currency, s.decimals),
+            style: t.bodyAmount,
+          ),
+          onTap: () => showGoalEditor(context),
         ),
         const SectionTitle('Appearance'),
         Padding(

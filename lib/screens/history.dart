@@ -165,6 +165,10 @@ class _MonthDetailScreenState extends State<MonthDetailScreen> {
                       ],
                     ),
                   ),
+                  if (d.goalProgress case final p?) ...[
+                    const SectionTitle('Savings goal'),
+                    GoalRow(progress: p),
+                  ],
                   const SectionTitle('Budgets'),
                   if (lines.isEmpty)
                     Padding(

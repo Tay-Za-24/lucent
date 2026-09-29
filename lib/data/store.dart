@@ -3,6 +3,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
 import 'db.dart';
+import 'goal.dart';
 import 'models.dart';
 
 const _uuid = Uuid();
@@ -41,6 +42,9 @@ class AppStore extends ChangeNotifier {
 
   /// categoryId -> limit (minor units) in effect for [month].
   Map<String, int> limits = {};
+
+  /// Savings goal in effect for [month] (null = none).
+  SavingsGoal? goal;
 
   /// [path] is only used by tests (e.g. an in-memory database).
   static Future<AppStore> open({String? path}) async {
@@ -88,6 +92,10 @@ class AppStore extends ChangeNotifier {
       await _db.transaction((txn) async {
         await txn.rawUpdate('UPDATE entries SET amount = MAX(1, $sqlAmount)');
         await txn.rawUpdate('UPDATE budgets SET amount = $sqlAmount WHERE amount IS NOT NULL');
+        await txn.rawUpdate(
+          "UPDATE savings_goals SET value = MAX(1, ${sqlAmount.replaceAll('amount', 'value')}) "
+          "WHERE kind = 'amount'",
+        );
       });
     }
     decimals = d;
@@ -179,6 +187,7 @@ class AppStore extends ChangeNotifier {
     final d = await monthData(month);
     monthEntries = d.entries;
     limits = d.limits;
+    goal = d.goal;
     notifyListeners();
   }
 
@@ -197,6 +206,21 @@ class AppStore extends ChangeNotifier {
     for (final r in b) {
       l[r['category_id'] as String] = r['amount'] as int?;
     }
+    // Same rule for the savings goal: latest row at or before this month.
+    final g = await _db.query(
+      'savings_goals',
+      where: 'month <= ?',
+      whereArgs: [key],
+      orderBy: 'month DESC',
+      limit: 1,
+    );
+    SavingsGoal? goal;
+    if (g.isNotEmpty && g.first['kind'] != 'none') {
+      goal = SavingsGoal(
+        g.first['kind'] == 'percent' ? GoalKind.percent : GoalKind.amount,
+        g.first['value'] as int,
+      );
+    }
     return MonthData(
       DateTime(m.year, m.month),
       rows.map(Entry.fromRow).toList(),
@@ -204,6 +228,7 @@ class AppStore extends ChangeNotifier {
         for (final e in l.entries)
           if (e.value != null) e.key: e.value!,
       },
+      goal,
     );
   }
 
@@ -297,8 +322,25 @@ class AppStore extends ChangeNotifier {
     await _loadMonth();
   }
 
+  // ---------- Savings goal ----------
+  /// Sets (or clears with null) the savings goal from the current month
+  /// onwards. Earlier months keep the goal they had.
+  Future<void> setGoal(SavingsGoal? g) async {
+    final key = monthKey(month);
+    await _db.transaction((txn) async {
+      await txn.delete('savings_goals', where: 'month >= ?', whereArgs: [key]);
+      await txn.insert('savings_goals', {
+        'month': key,
+        'kind': g?.kind.name ?? 'none',
+        'value': g?.value ?? 0,
+      });
+    });
+    await _loadMonth();
+  }
+
   // ---------- Computed totals (never stored) ----------
-  MonthData get current => MonthData(month, monthEntries, limits);
+  MonthData get current => MonthData(month, monthEntries, limits, goal);
+  GoalProgress? get goalProgress => current.goalProgress;
   int get totalIn => current.totalIn;
   int get totalOut => current.totalOut;
   int get net => totalIn - totalOut;
@@ -308,10 +350,17 @@ class AppStore extends ChangeNotifier {
 
 /// One month's entries and limits, with totals computed on the fly.
 class MonthData {
-  MonthData(this.month, this.entries, this.limits);
+  MonthData(this.month, this.entries, this.limits, [this.goal]);
   final DateTime month;
   final List<Entry> entries;
   final Map<String, int> limits;
+  final SavingsGoal? goal;
+
+  /// Saved (= net) against the goal, or null when no goal applies.
+  GoalProgress? get goalProgress {
+    final g = goal;
+    return g == null ? null : GoalProgress(g, totalIn, net);
+  }
 
   int get totalIn =>
       entries.where((e) => e.kind == Kind.income).fold(0, (s, e) => s + e.amount);

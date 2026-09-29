@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme.dart';
 import '../widgets/common.dart';
+import 'goal_editor.dart';
 
 /// Month overview: Net (large), In and Out, then budget progress.
 class HomeScreen extends StatelessWidget {
@@ -47,6 +48,17 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 24),
+        const Hairline(indent: 0),
+        const SectionTitle('Savings goal'),
+        if (s.goalProgress case final p?)
+          GoalRow(progress: p, onTap: () => showGoalEditor(context))
+        else
+          ListTile(
+            title: Text('No savings goal yet', style: t.body.copyWith(color: c.textSecondary)),
+            subtitle: const Text('A fixed amount or a share of income each month.'),
+            trailing: TextButton(onPressed: () => showGoalEditor(context), child: const Text('Set goal')),
+          ),
+        const SizedBox(height: 8),
         const Hairline(indent: 0),
         const SectionTitle('Budgets'),
         if (lines.isEmpty)

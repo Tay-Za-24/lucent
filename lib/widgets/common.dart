@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../data/goal.dart';
 import '../data/models.dart';
 import '../data/store.dart';
 import '../money.dart';
@@ -263,4 +264,86 @@ class MaxWidth extends StatelessWidget {
   Widget build(BuildContext context) => Center(
     child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 720), child: child),
   );
+}
+
+/// Short description of a goal, e.g. "K 200,000 a month" or "20% of income".
+String goalLabel(SavingsGoal g, String currency, int decimals) => g.kind == GoalKind.amount
+    ? '${formatMoney(g.value, currency, decimals)} a month'
+    : '${g.value}% of income';
+
+/// Saved this month (income minus expenses) against the savings goal:
+/// title and "saved of target" on the left, what's left to go on the right,
+/// and a thin accent bar underneath.
+class GoalRow extends StatelessWidget {
+  const GoalRow({super.key, required this.progress, this.onTap});
+  final GoalProgress progress;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = StoreScope.of(context);
+    final c = context.colors;
+    final t = context.text;
+    final p = progress;
+    String fmt(int v) => formatMoney(v, s.currency, s.decimals);
+    final caption = p.needsIncome
+        ? '${goalLabel(p.goal, s.currency, s.decimals)} \u00b7 add income to work it out'
+        : '${fmt(p.saved)} of ${fmt(p.target)} saved'
+              '${p.goal.kind == GoalKind.percent ? ' \u00b7 ${p.goal.value}% of income' : ''}';
+    final String status;
+    final TextStyle statusStyle;
+    if (p.needsIncome) {
+      status = 'No income yet';
+      statusStyle = t.caption;
+    } else if (p.reached) {
+      status = 'Goal reached';
+      statusStyle = t.bodyAmount.copyWith(color: c.accent);
+    } else {
+      status = '${fmt(p.toGo)} to go';
+      statusStyle = t.bodyAmount;
+    }
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Saved', style: t.body),
+                      const SizedBox(height: 2),
+                      Text(caption, style: t.caption),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Text(status, style: statusStyle, maxLines: 1),
+              ],
+            ),
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(2),
+              child: SizedBox(
+                height: 4,
+                child: ColoredBox(
+                  color: c.track,
+                  child: FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: p.fraction,
+                    child: ColoredBox(color: c.accent),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
