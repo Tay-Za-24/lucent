@@ -38,8 +38,9 @@ class AppStore extends ChangeNotifier {
   /// categoryId -> limit (minor units) in effect for [month].
   Map<String, int> limits = {};
 
-  static Future<AppStore> open() async {
-    final s = AppStore._(await openLucentDb());
+  /// [path] is only used by tests (e.g. an in-memory database).
+  static Future<AppStore> open({String? path}) async {
+    final s = AppStore._(await openLucentDb(path: path));
     await s._loadSettings();
     await s._loadCategories();
     await s._loadMonth();

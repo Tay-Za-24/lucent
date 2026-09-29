@@ -2,10 +2,10 @@ import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
 /// Opens (and on first run creates) the local SQLite database file.
-Future<Database> openLucentDb() async {
-  final dir = await getDatabasesPath();
+Future<Database> openLucentDb({String? path}) async {
+  path ??= p.join(await getDatabasesPath(), 'lucent.db');
   return openDatabase(
-    p.join(dir, 'lucent.db'),
+    path,
     version: 1,
     onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
     onCreate: (db, version) async {
