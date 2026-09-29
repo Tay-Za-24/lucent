@@ -9,6 +9,8 @@ void main() {
     expect(parseAmount('0', 0), isNull);
     expect(parseAmount('1.234', 2), isNull);
     expect(parseAmount('1.5', 0), isNull);
+    expect(parseAmount('\u1045\u1040\u1040\u1040', 0), 5000); // Myanmar digits
+    expect(parseAmount('5 000', 0), 5000);
   });
 
   test('format money', () {

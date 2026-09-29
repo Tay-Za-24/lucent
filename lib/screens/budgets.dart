@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../data/store.dart';
@@ -29,8 +28,10 @@ class BudgetsScreen extends StatelessWidget {
         if (withLimit.isNotEmpty) ...[
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: Text(totalLimit - totalSpent >= 0 ? 'Left this month' : 'Over budget',
-                style: t.caption),
+            child: Text(
+              totalLimit - totalSpent >= 0 ? 'Left this month' : 'Over budget',
+              style: t.caption,
+            ),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -43,9 +44,10 @@ class BudgetsScreen extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
             child: Text(
-                '${formatMoney(totalSpent, s.currency, s.decimals)} of '
-                '${formatMoney(totalLimit, s.currency, s.decimals)} spent',
-                style: t.caption),
+              '${formatMoney(totalSpent, s.currency, s.decimals)} of '
+              '${formatMoney(totalLimit, s.currency, s.decimals)} spent',
+              style: t.caption,
+            ),
           ),
         ],
         const SectionTitle('Expense categories'),
@@ -66,65 +68,65 @@ class BudgetsScreen extends StatelessWidget {
   Future<void> _editLimit(BuildContext context, BudgetLine line) async {
     final s = StoreScope.read(context);
     final ctl = TextEditingController(
-        text: line.limit == null ? '' : amountToInput(line.limit!, s.decimals));
+      text: line.limit == null ? '' : amountToInput(line.limit!, s.decimals),
+    );
     String? error;
     await showDialog<void>(
       context: context,
-      builder: (ctx) => StatefulBuilder(builder: (ctx, setState) {
-        Future<void> save() async {
-          final v = parseAmount(ctl.text, s.decimals);
-          if (v == null) {
-            setState(() => error = 'Enter an amount greater than zero');
-            return;
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) {
+          Future<void> save() async {
+            final v = parseAmount(ctl.text, s.decimals);
+            if (v == null) {
+              setState(() => error = 'Enter an amount greater than zero');
+              return;
+            }
+            await s.setLimit(line.category.id, v);
+            if (ctx.mounted) Navigator.pop(ctx);
           }
-          await s.setLimit(line.category.id, v);
-          if (ctx.mounted) Navigator.pop(ctx);
-        }
 
-        return AlertDialog(
-          title: Text('${line.category.name} limit'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                controller: ctl,
-                autofocus: true,
-                keyboardType: TextInputType.numberWithOptions(decimal: s.decimals > 0),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(
-                      RegExp(s.decimals > 0 ? r'[0-9.,]' : r'[0-9,]')),
-                ],
-                style: ctx.text.bodyAmount,
-                decoration: InputDecoration(
-                  labelText: 'Monthly limit',
-                  prefixText: s.currency.isEmpty ? null : '${s.currency} ',
-                  errorText: error,
+          return AlertDialog(
+            title: Text('${line.category.name} limit'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: ctl,
+                  autofocus: true,
+                  keyboardType: TextInputType.numberWithOptions(decimal: s.decimals > 0),
+                  inputFormatters: [AmountInputFormatter(s.decimals)],
+                  style: ctx.text.bodyAmount,
+                  decoration: InputDecoration(
+                    labelText: 'Monthly limit',
+                    prefixText: s.currency.isEmpty ? null : '${s.currency} ',
+                    errorText: error,
+                  ),
+                  onSubmitted: (_) => save(),
                 ),
-                onSubmitted: (_) => save(),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Applies to ${DateFormat('MMMM yyyy').format(s.month)} and later months. '
-                'Each month starts fresh on the 1st.',
-                style: ctx.text.caption,
-              ),
+                const SizedBox(height: 16),
+                Text(
+                  'Applies to ${DateFormat('MMMM yyyy').format(s.month)} and later months. '
+                  'Each month starts fresh on the 1st.',
+                  style: ctx.text.caption,
+                ),
+              ],
+            ),
+            actions: [
+              if (line.limit != null)
+                TextButton(
+                  onPressed: () async {
+                    await s.setLimit(line.category.id, null);
+                    if (ctx.mounted) Navigator.pop(ctx);
+                  },
+                  child: const Text('Remove'),
+                ),
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+              TextButton(onPressed: save, child: const Text('Save')),
             ],
-          ),
-          actions: [
-            if (line.limit != null)
-              TextButton(
-                onPressed: () async {
-                  await s.setLimit(line.category.id, null);
-                  if (ctx.mounted) Navigator.pop(ctx);
-                },
-                child: const Text('Remove'),
-              ),
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-            TextButton(onPressed: save, child: const Text('Save')),
-          ],
-        );
-      }),
+          );
+        },
+      ),
     );
   }
 }

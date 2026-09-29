@@ -54,13 +54,16 @@ class AppStore extends ChangeNotifier {
     onboarded = m['onboarded'] == '1';
     currency = m['currency'] ?? 'K';
     decimals = int.tryParse(m['decimals'] ?? '') ?? 0;
-    themeMode = ThemeMode.values.firstWhere((t) => t.name == m['theme'],
-        orElse: () => ThemeMode.system);
+    themeMode = ThemeMode.values.firstWhere(
+      (t) => t.name == m['theme'],
+      orElse: () => ThemeMode.system,
+    );
   }
 
-  Future<void> _setSetting(String key, String value) => _db.insert(
-      'settings', {'key': key, 'value': value},
-      conflictAlgorithm: ConflictAlgorithm.replace);
+  Future<void> _setSetting(String key, String value) => _db.insert('settings', {
+    'key': key,
+    'value': value,
+  }, conflictAlgorithm: ConflictAlgorithm.replace);
 
   Future<void> setCurrency(String symbol) async {
     currency = symbol.trim();
@@ -76,8 +79,7 @@ class AppStore extends ChangeNotifier {
       final sqlAmount = d > decimals ? 'amount * 100' : '(amount + 50) / 100';
       await _db.transaction((txn) async {
         await txn.rawUpdate('UPDATE entries SET amount = MAX(1, $sqlAmount)');
-        await txn.rawUpdate(
-            'UPDATE budgets SET amount = $sqlAmount WHERE amount IS NOT NULL');
+        await txn.rawUpdate('UPDATE budgets SET amount = $sqlAmount WHERE amount IS NOT NULL');
       });
     }
     decimals = d;
@@ -101,8 +103,7 @@ class AppStore extends ChangeNotifier {
   Future<void> _loadCategories() async {
     final rows = await _db.query('categories', orderBy: 'created_at');
     categories = rows.map(Category.fromRow).toList();
-    final used =
-        await _db.rawQuery('SELECT DISTINCT category_id FROM entries');
+    final used = await _db.rawQuery('SELECT DISTINCT category_id FROM entries');
     usedCategoryIds = used.map((r) => r['category_id'] as String).toSet();
   }
 
@@ -116,18 +117,24 @@ class AppStore extends ChangeNotifier {
   List<Category> activeCategories(Kind kind) =>
       categories.where((c) => c.kind == kind && !c.archived).toList();
 
-  Future<void> addCategory(String name, Kind kind, int color) async {
+  Future<Category> addCategory(String name, Kind kind, int color) async {
     final c = Category(id: _uuid.v4(), name: name.trim(), kind: kind, color: color);
-    await _db.insert('categories',
-        {...c.toRow(), 'created_at': DateTime.now().millisecondsSinceEpoch});
+    await _db.insert('categories', {
+      ...c.toRow(),
+      'created_at': DateTime.now().millisecondsSinceEpoch,
+    });
     categories.add(c);
     notifyListeners();
+    return c;
   }
 
   Future<void> updateCategory(Category c) async {
-    await _db.update('categories',
-        {'name': c.name.trim(), 'color': c.color, 'archived': c.archived ? 1 : 0},
-        where: 'id = ?', whereArgs: [c.id]);
+    await _db.update(
+      'categories',
+      {'name': c.name.trim(), 'color': c.color, 'archived': c.archived ? 1 : 0},
+      where: 'id = ?',
+      whereArgs: [c.id],
+    );
     notifyListeners();
   }
 
@@ -150,26 +157,26 @@ class AppStore extends ChangeNotifier {
     await _loadMonth();
   }
 
-  Future<void> shiftMonth(int delta) =>
-      setMonth(DateTime(month.year, month.month + delta));
+  Future<void> shiftMonth(int delta) => setMonth(DateTime(month.year, month.month + delta));
 
   Future<void> _loadMonth() async {
     final key = monthKey(month);
-    final rows = await _db.query('entries',
-        where: 'date LIKE ?',
-        whereArgs: ['$key-%'],
-        orderBy: 'date DESC, created_at DESC');
+    final rows = await _db.query(
+      'entries',
+      where: 'date LIKE ?',
+      whereArgs: ['$key-%'],
+      orderBy: 'date DESC, created_at DESC',
+    );
     monthEntries = rows.map(Entry.fromRow).toList();
     // Latest budget row at or before this month wins, per category.
-    final b = await _db.query('budgets',
-        where: 'month <= ?', whereArgs: [key], orderBy: 'month');
+    final b = await _db.query('budgets', where: 'month <= ?', whereArgs: [key], orderBy: 'month');
     final l = <String, int?>{};
     for (final r in b) {
       l[r['category_id'] as String] = r['amount'] as int?;
     }
     limits = {
       for (final e in l.entries)
-        if (e.value != null) e.key: e.value!
+        if (e.value != null) e.key: e.value!,
     };
     notifyListeners();
   }
@@ -191,13 +198,18 @@ class AppStore extends ChangeNotifier {
       note: (note == null || note.trim().isEmpty) ? null : note.trim(),
     );
     if (id == null) {
-      await _db.insert('entries',
-          {...e.toRow(), 'created_at': DateTime.now().millisecondsSinceEpoch});
+      await _db.insert('entries', {
+        ...e.toRow(),
+        'created_at': DateTime.now().millisecondsSinceEpoch,
+      });
     } else {
       await _db.update('entries', e.toRow(), where: 'id = ?', whereArgs: [id]);
     }
     usedCategoryIds.add(categoryId);
     await _loadCategories();
+    // Show the month the entry belongs to, so Home and Entries reflect it
+    // right away (previously the list could stay on another month).
+    month = DateTime(e.date.year, e.date.month);
     await _loadMonth();
   }
 
@@ -213,8 +225,11 @@ class AppStore extends ChangeNotifier {
   Future<void> setLimit(String categoryId, int? amount) async {
     final key = monthKey(month);
     await _db.transaction((txn) async {
-      await txn.delete('budgets',
-          where: 'category_id = ? AND month >= ?', whereArgs: [categoryId, key]);
+      await txn.delete(
+        'budgets',
+        where: 'category_id = ? AND month >= ?',
+        whereArgs: [categoryId, key],
+      );
       await txn.insert('budgets', {
         'id': _uuid.v4(),
         'category_id': categoryId,
@@ -226,12 +241,10 @@ class AppStore extends ChangeNotifier {
   }
 
   // ---------- Computed totals (never stored) ----------
-  int get totalIn => monthEntries
-      .where((e) => e.kind == Kind.income)
-      .fold(0, (s, e) => s + e.amount);
-  int get totalOut => monthEntries
-      .where((e) => e.kind == Kind.expense)
-      .fold(0, (s, e) => s + e.amount);
+  int get totalIn =>
+      monthEntries.where((e) => e.kind == Kind.income).fold(0, (s, e) => s + e.amount);
+  int get totalOut =>
+      monthEntries.where((e) => e.kind == Kind.expense).fold(0, (s, e) => s + e.amount);
   int get net => totalIn - totalOut;
 
   int spentIn(String categoryId) => monthEntries
@@ -241,9 +254,11 @@ class AppStore extends ChangeNotifier {
   /// Expense categories to show on the budgets screen: active ones, plus
   /// archived ones that still have spending or a limit this month.
   List<BudgetLine> budgetLines() => categories
-      .where((c) =>
-          c.kind == Kind.expense &&
-          (!c.archived || limits.containsKey(c.id) || spentIn(c.id) > 0))
+      .where(
+        (c) =>
+            c.kind == Kind.expense &&
+            (!c.archived || limits.containsKey(c.id) || spentIn(c.id) > 0),
+      )
       .map((c) => BudgetLine(c, limits[c.id], spentIn(c.id)))
       .toList();
 }

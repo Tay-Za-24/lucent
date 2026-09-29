@@ -25,7 +25,9 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
   String? _categoryId;
   final _amount = TextEditingController();
   final _note = TextEditingController();
-  String? _error;
+  String? _amountError;
+  String? _categoryError;
+  bool _saving = false;
 
   @override
   void initState() {
@@ -34,7 +36,7 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
     final now = DateTime.now();
     _kind = e?.kind ?? Kind.expense;
     _date = e?.date ?? DateTime(now.year, now.month, now.day);
-    _categoryId = e?.categoryId;
+    _categoryId = e?.categoryId ?? _onlyCategory(_kind);
     _note.text = e?.note ?? '';
     if (e != null) {
       _amount.text = amountToInput(e.amount, StoreScope.read(context).decimals);
@@ -48,25 +50,80 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
     super.dispose();
   }
 
+  /// Pre-selects the category when there is exactly one to choose from.
+  String? _onlyCategory(Kind kind) {
+    final list = StoreScope.read(context).activeCategories(kind);
+    return list.length == 1 ? list.first.id : null;
+  }
+
+  void _setKind(Kind k) {
+    if (k == _kind) return;
+    final s = StoreScope.read(context);
+    final current = _categoryId == null ? null : s.categoryById(_categoryId!);
+    setState(() {
+      _kind = k;
+      // Keep the typed amount; only drop the category if it's the other type.
+      if (current == null || current.kind != k) _categoryId = _onlyCategory(k);
+      _categoryError = null;
+    });
+  }
+
+  Future<void> _newCategory() async {
+    final s = StoreScope.read(context);
+    final before = s.categories.map((c) => c.id).toSet();
+    await showCategoryEditor(context, kind: _kind);
+    if (!mounted) return;
+    final added = s.categories.where((c) => !before.contains(c.id) && c.kind == _kind);
+    if (added.isNotEmpty) {
+      setState(() {
+        _categoryId = added.first.id;
+        _categoryError = null;
+      });
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<void> _save() async {
+    if (_saving) return;
     final s = StoreScope.read(context);
     final amount = parseAmount(_amount.text, s.decimals);
-    if (amount == null) {
-      setState(() => _error = 'Enter an amount greater than zero');
+    final cat = _categoryId == null ? null : s.categoryById(_categoryId!);
+    final amountError = amount == null ? 'Enter an amount greater than zero' : null;
+    final categoryError = (cat == null || cat.kind != _kind)
+        ? 'Choose ${_kind == Kind.income ? 'an income' : 'an expense'} category'
+        : null;
+    setState(() {
+      _amountError = amountError;
+      _categoryError = categoryError;
+    });
+    // Shown above the keyboard so it is never hidden (it used to appear only
+    // at the bottom of the form, out of sight while typing).
+    if (amountError != null || categoryError != null) {
+      _showError(amountError ?? categoryError!);
       return;
     }
-    if (_categoryId == null) {
-      setState(() => _error = 'Choose a category');
+    setState(() => _saving = true);
+    try {
+      await s.saveEntry(
+        id: widget.entry?.id,
+        kind: _kind,
+        amount: amount!,
+        categoryId: cat!.id,
+        date: _date,
+        note: _note.text,
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _saving = false);
+        _showError('Couldn\u2019t save: $e');
+      }
       return;
     }
-    await s.saveEntry(
-      id: widget.entry?.id,
-      kind: _kind,
-      amount: amount,
-      categoryId: _categoryId!,
-      date: _date,
-      note: _note.text,
-    );
     HapticFeedback.selectionClick();
     if (mounted) Navigator.of(context).pop();
   }
@@ -111,10 +168,13 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
       appBar: AppBar(
         title: Text(editing ? 'Edit entry' : 'New entry'),
         actions: [
-          TextButton(onPressed: _save, child: const Text('Save')),
+          TextButton(onPressed: _saving ? null : _save, child: const Text('Save')),
           if (editing)
             IconButton(
-                tooltip: 'Delete', icon: const Icon(Icons.delete_outline), onPressed: _delete),
+              tooltip: 'Delete',
+              icon: const Icon(Icons.delete_outline),
+              onPressed: _delete,
+            ),
         ],
       ),
       body: MaxWidth(
@@ -127,11 +187,7 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
                 ButtonSegment(value: Kind.income, label: Text('Income')),
               ],
               selected: {_kind},
-              onSelectionChanged: (v) => setState(() {
-                _kind = v.first;
-                _categoryId = null;
-                _error = null;
-              }),
+              onSelectionChanged: (v) => _setKind(v.first),
             ),
             const SizedBox(height: 24),
             Text('Amount', style: t.caption),
@@ -140,18 +196,20 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
               controller: _amount,
               autofocus: !editing,
               keyboardType: TextInputType.numberWithOptions(decimal: s.decimals > 0),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(s.decimals > 0 ? r'[0-9.,]' : r'[0-9,]')),
-              ],
+              inputFormatters: [AmountInputFormatter(s.decimals)],
               style: t.displayAmount.copyWith(
-                  color: _kind == Kind.income ? c.accent : c.textPrimary),
+                color: _kind == Kind.income ? c.accent : c.textPrimary,
+              ),
               decoration: InputDecoration(
                 hintText: s.decimals > 0 ? '0.00' : '0',
                 hintStyle: t.displayAmount.copyWith(color: c.textTertiary),
                 prefixText: s.currency.isEmpty ? null : '${s.currency} ',
                 prefixStyle: t.headlineAmount.copyWith(color: c.textSecondary),
+                errorText: _amountError,
               ),
-              onChanged: (_) => setState(() => _error = null),
+              onChanged: (_) {
+                if (_amountError != null) setState(() => _amountError = null);
+              },
             ),
             const SizedBox(height: 24),
             Text('Category', style: t.caption),
@@ -167,16 +225,20 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
                     selected: _categoryId == cat.id,
                     onSelected: (_) => setState(() {
                       _categoryId = cat.id;
-                      _error = null;
+                      _categoryError = null;
                     }),
                   ),
                 ActionChip(
                   avatar: const Icon(Icons.add, size: 18),
                   label: const Text('New'),
-                  onPressed: () => showCategoryEditor(context, kind: _kind),
+                  onPressed: _newCategory,
                 ),
               ],
             ),
+            if (_categoryError != null) ...[
+              const SizedBox(height: 8),
+              Text(_categoryError!, style: t.caption.copyWith(color: c.over)),
+            ],
             const SizedBox(height: 24),
             Text('Date', style: t.caption),
             const SizedBox(height: 8),
@@ -193,12 +255,8 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
               maxLines: null,
               decoration: const InputDecoration(labelText: 'Note (optional)'),
             ),
-            if (_error != null) ...[
-              const SizedBox(height: 16),
-              Text(_error!, style: t.label.copyWith(color: c.over)),
-            ],
             const SizedBox(height: 32),
-            FilledButton(onPressed: _save, child: const Text('Save')),
+            FilledButton(onPressed: _saving ? null : _save, child: const Text('Save')),
           ],
         ),
       ),

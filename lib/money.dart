@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 /// True minus sign (U+2212) used for negative amounts.
@@ -19,7 +20,7 @@ String formatMoney(int minor, String symbol, int decimals, {bool plus = false}) 
 
 /// Parses user input into minor units. Returns null if invalid or <= 0.
 int? parseAmount(String input, int decimals) {
-  final s = input.replaceAll(',', '').replaceAll(' ', '').trim();
+  final s = normalizeDigits(input).replaceAll(RegExp(r'[,\s\u00a0\u202f]'), '').trim();
   if (s.isEmpty) return null;
   final ok = decimals == 0
       ? RegExp(r'^\d+$').hasMatch(s)
@@ -40,3 +41,40 @@ int? parseAmount(String input, int decimals) {
 /// Minor units -> plain editable text ("1234.50").
 String amountToInput(int minor, int decimals) =>
     decimals == 0 ? '$minor' : (minor / 100).toStringAsFixed(2);
+
+/// Maps Myanmar, Arabic-Indic, Persian and full-width digits to 0-9, so
+/// amounts typed on any keyboard are understood.
+String normalizeDigits(String input) {
+  const zeros = [0x1040, 0x0660, 0x06F0, 0xFF10, 0x0966];
+  final out = StringBuffer();
+  for (final r in input.runes) {
+    var mapped = r;
+    for (final z in zeros) {
+      if (r >= z && r <= z + 9) mapped = 0x30 + r - z;
+    }
+    if (r == 0xFF0C || r == 0x066C) mapped = 0x2C; // full-width / Arabic comma
+    if (r == 0xFF0E || r == 0x066B) mapped = 0x2E; // full-width / Arabic decimal point
+    out.writeCharCode(mapped);
+  }
+  return out.toString();
+}
+
+/// Amount field filter: converts other digit scripts to 0-9, then keeps only
+/// digits, commas and (when decimals are used) one decimal point.
+class AmountInputFormatter extends TextInputFormatter {
+  AmountInputFormatter(this.decimals);
+  final int decimals;
+
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    final allowed = decimals > 0 ? RegExp(r'[0-9.,]') : RegExp(r'[0-9,]');
+    final text = normalizeDigits(
+      newValue.text,
+    ).split('').where((ch) => allowed.hasMatch(ch)).join();
+    if (text == newValue.text) return newValue;
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
+}
