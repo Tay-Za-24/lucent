@@ -255,7 +255,7 @@ class _SendPageState extends State<SendPage> {
                 controller: _address,
                 enabled: !busy,
                 decoration: const InputDecoration(labelText: 'Address', hintText: '192.168.1.20:40123'),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: TextInputType.url, // number pads often have no ':'
                 inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.:]'))],
               ),
               const SizedBox(height: 12),
