@@ -19,6 +19,9 @@ Future<void> main() async {
   runApp(LucentApp(store: store));
 }
 
+/// Widest the app content gets on a large window.
+const maxContentWidth = 560.0;
+
 class LucentApp extends StatelessWidget {
   const LucentApp({super.key, required this.store});
   final AppStore store;
@@ -35,6 +38,16 @@ class LucentApp extends StatelessWidget {
           theme: buildTheme(Brightness.light),
           darkTheme: buildTheme(Brightness.dark),
           themeMode: store.themeMode,
+          // On a wide window (desktop, tablet) keep content phone-width and centred.
+          builder: (context, child) => ColoredBox(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: maxContentWidth),
+                child: child,
+              ),
+            ),
+          ),
           home: store.onboarded ? const HomeShell() : const OnboardingScreen(),
         ),
       ),
