@@ -64,7 +64,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Flutter & Dart SDK'), findsOneWidget);
-    expect(find.text('Includes 2 bundled libraries'), findsOneWidget);
+    expect(find.text('Framework, engine and bundled parts'), findsOneWidget);
     expect(find.text('sqflite'), findsOneWidget); // sqflite_android folded in
     expect(find.text('BSD-2'), findsOneWidget);
     expect(find.text('uuid'), findsOneWidget);

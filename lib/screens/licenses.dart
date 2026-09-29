@@ -162,7 +162,7 @@ class _LicensesScreenState extends State<LicensesScreen> {
                     name: 'Flutter & Dart SDK',
                     type: 'BSD-3 and others',
                     subtitle: sdkCount > 0
-                        ? 'Includes $sdkCount bundled libraries'
+                        ? 'Framework, engine and bundled parts'
                         : null,
                     onTap: _fullTexts,
                   ),
