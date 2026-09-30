@@ -10,8 +10,7 @@
       <stop offset="1" stop-color="#0E0E12"/>
     </linearGradient>
   </defs>
-  <rect x="0" y="0" width="1024" height="1024" rx="228" fill="url(#tile)"/>
-  <g transform="translate(48.706,127.448) scale(1.83120)">
+  <g transform="translate(-135.059,-25.084) scale(2.55754)">
     <polygon points="253,20 121,157 173,205" fill="#F6F7F9"/>
     <polygon points="253,20 173,205 253,124" fill="#FCFCFD"/>
     <polygon points="253,20 253,124 333,205" fill="#ECEFF3"/>

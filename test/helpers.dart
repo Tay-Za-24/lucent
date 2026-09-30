@@ -28,10 +28,10 @@ Future<void> onboard(WidgetTester tester) async {
   await tapAndSettle(tester, find.text('Get started'));
   await tapAndSettle(tester, find.text('Continue'));
   await tapAndSettle(tester, find.text('Add').first);
-  await tester.enterText(find.byType(TextField).last, 'Food');
+  await tester.enterText(find.widgetWithText(TextField, 'Name'), 'Food');
   await tapAndSettle(tester, find.text('Save'));
   await tapAndSettle(tester, find.text('Add').last);
-  await tester.enterText(find.byType(TextField).last, 'Salary');
+  await tester.enterText(find.widgetWithText(TextField, 'Name'), 'Salary');
   await tapAndSettle(tester, find.text('Save'));
   await tapAndSettle(tester, find.text('Start using Lucent'));
 }

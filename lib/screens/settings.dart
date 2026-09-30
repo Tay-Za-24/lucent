@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/models.dart';
 import '../data/store.dart';
+import '../money.dart';
 import '../theme.dart';
 import '../version.dart';
 import '../widgets/common.dart';
@@ -197,7 +198,11 @@ class CategoryList extends StatelessWidget {
             minLeadingWidth: 16,
             title: Text(c.name,
                 style: c.archived ? t.body.copyWith(color: context.colors.textSecondary) : null),
-            subtitle: c.archived ? const Text('Archived') : null,
+            subtitle: c.archived
+                ? const Text('Archived')
+                : s.limits[c.id] == null
+                    ? null
+                    : Text('Limit ${formatMoney(s.limits[c.id]!, s.currency, s.decimals)} a month'),
             trailing: const Icon(Icons.edit_outlined, size: 20),
             onTap: () => showCategoryEditor(context, existing: c),
           ),

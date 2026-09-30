@@ -25,10 +25,10 @@ void main() {
     await tap(find.text('Get started'));
     await tap(find.text('Continue'));
     await tap(find.text('Add').first);
-    await tester.enterText(find.byType(TextField).last, 'Food');
+    await tester.enterText(find.widgetWithText(TextField, 'Name'), 'Food');
     await tap(find.text('Save'));
     await tap(find.text('Add').last);
-    await tester.enterText(find.byType(TextField).last, 'Salary');
+    await tester.enterText(find.widgetWithText(TextField, 'Name'), 'Salary');
     await tap(find.text('Save'));
     await tap(find.text('Start using Lucent'));
     expect(find.text('Net'), findsOneWidget);
