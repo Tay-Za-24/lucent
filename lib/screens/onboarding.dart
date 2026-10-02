@@ -38,7 +38,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           children: [
             Align(
               alignment: Alignment.centerLeft,
-              child: Image.asset('assets/brand/logo-256.png', width: 64, height: 64),
+              child: Image.asset('assets/brand/logo.png', width: 64, height: 64),
             ),
             const SizedBox(height: 24),
             Text('Lucent', style: t.displayAmount),

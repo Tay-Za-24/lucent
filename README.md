@@ -2,9 +2,9 @@
 
 A minimal, private budget tracker for Android. Everything you enter stays on your phone; the app never uses the internet (the release app doesn't even ask for internet permission).
 
-## What the app does (version 0.4.0)
+## What the app does (version 0.4.1)
 
-**New in 0.4.0:** a new logo and app icon (a silver crystal on a near-black tile), and you can set a category's monthly limit right when you create or edit it.
+**New in 0.4.1:** the supplied logo image is used unchanged on the welcome and Licenses screens, and is scaled proportionally for Android launcher icons. Version 0.4.0 also added category monthly limits when creating or editing a category.
 
 
 - **First-run setup:** a welcome screen, then you pick your currency symbol (anything you like, e.g. `K` or `$`) and whether amounts use 0 or 2 decimal places. Then you create your own categories (for an expense category you can type a monthly limit straight away, or leave it empty). Nothing is pre-filled; you need at least one expense and one income category to start.
@@ -32,7 +32,7 @@ A minimal, private budget tracker for Android. Everything you enter stays on you
 | `analysis_options.yaml` | Rules for the code checker (`flutter analyze`). |
 | `.gitignore` | Tells git which files never to save online (build output, signing keys, passwords). |
 | `.metadata` | Bookkeeping file Flutter creates. Leave it alone. |
-| `assets/brand/` | The Lucent logo: `logo.svg` (the app icon drawing: a silver faceted crystal, hand-traced from the artwork, on a near-black rounded tile), `crystal.svg` / `crystal-1024.png` (the crystal alone on a see-through background), `logo-1024.png` (large picture) and `logo-256.png` (used inside the app on the welcome and Licenses screens). |
+| `assets/brand/` | The Lucent logo: `logo.png` is the original supplied artwork, used unchanged inside the app on the welcome and Licenses screens. Older artwork is retained for reference. |
 | `assets/fonts/` | The Inter typeface files (official v4.1 release) and their licence. They're packed inside the app, so nothing is downloaded. |
 | `lib/` | **The app itself** (all the Dart code). |
 | `lib/main.dart` | Starting point: opens the database, registers the font licence, picks light/dark theme, and shows setup or the main screens. |
@@ -47,9 +47,9 @@ A minimal, private budget tracker for Android. Everything you enter stays on you
 | `lib/widgets/budget_ring.dart` | The ring (doughnut) chart for the Budgets page, drawn directly by the app (no extra library). |
 | `lib/screens/` | One file per screen: `onboarding.dart` (first-run setup), `home_shell.dart` (bottom tabs), `home.dart`, `transactions.dart` (Entries tab), `entry_form.dart` (add/edit entry), `budgets.dart`, `history.dart` (History tab and the past-month detail), `settings.dart` (also the categories list), `category_editor.dart` (the add/edit category box), `goal_editor.dart` (the savings goal box), `licenses.dart` (the short Licenses page). |
 | `test/` | Automatic checks: amount parsing and formatting, savings goal maths (percentages, zero income, negative months), upgrading a 0.2.0 database, the Licenses page, plus on-screen walkthroughs (adding income and expenses and seeing them on Home, History, both budget displays, setting a goal, setting a category's limit from the category box). Run with `flutter test`. |
-| `tool/make_icon.py` | Redraws the logo and all Android launcher icons (adaptive, themed/monochrome and the older fixed-size pictures) from one set of crystal shapes. Run `python3 tool/make_icon.py` (needs `rsvg-convert`, from the `librsvg2-bin` package). |
+| `tool/make_icon.py` | Generates Android launcher icons (adaptive and older fixed-size pictures) from `assets/brand/logo.png`. Preserves the artwork and its proportions, adding padding for square icon canvases. Run `python3 tool/make_icon.py` (needs Pillow). |
 | `.github/workflows/android.yml` | Builds and tests the Android app on GitHub's computers on every push (a check that everything still builds). Its APK is signed with a throwaway key, so it's only for checking; the real APK is signed with the private key on the maintainer's computer (see below). |
-| `android/` | The Android "wrapper" that turns the code into a phone app: app ID `app.lucent.budget`, name "Lucent", launcher icon (the crystal; an adaptive icon with a separate background, foreground and a one-colour layer for themed icons), and release signing setup. |
+| `android/` | The Android "wrapper" that turns the code into a phone app: app ID `app.lucent.budget`, name "Lucent", launcher icon (the supplied artwork; an adaptive icon with a separate background and foreground), and release signing setup. |
 | `android/app/src/release/AndroidManifest.xml` | Makes sure the release app has no internet permission. |
 | `build/` | Created when you build. Not saved in git. |
 

@@ -99,7 +99,7 @@ class _LicensesScreenState extends State<LicensesScreen> {
     applicationVersion: appVersion,
     applicationIcon: Padding(
       padding: const EdgeInsets.all(8),
-      child: Image.asset('assets/brand/logo-256.png', width: 48, height: 48),
+      child: Image.asset('assets/brand/logo.png', width: 48, height: 48),
     ),
   );
 
@@ -122,7 +122,7 @@ class _LicensesScreenState extends State<LicensesScreen> {
                   child: Row(
                     children: [
                       Image.asset(
-                        'assets/brand/logo-256.png',
+                        'assets/brand/logo.png',
                         width: 48,
                         height: 48,
                       ),
