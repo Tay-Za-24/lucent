@@ -1,30 +1,3 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <defs>
-    <linearGradient id="silver" gradientUnits="userSpaceOnUse" x1="0" y1="20" x2="0" y2="400">
-      <stop offset="0" stop-color="#D3D8DE"/>
-      <stop offset="0.55" stop-color="#B7BDC5"/>
-      <stop offset="1" stop-color="#A3AAB3"/>
-    </linearGradient>
-    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#1C1C24"/>
-      <stop offset="1" stop-color="#0E0E12"/>
-    </linearGradient>
-  </defs>
-  <g transform="translate(-135.059,-25.084) scale(2.55754)">
-    <polygon points="253,20 121,157 173,205" fill="#F6F7F9"/>
-    <polygon points="253,20 173,205 253,124" fill="#FCFCFD"/>
-    <polygon points="253,20 253,124 333,205" fill="#ECEFF3"/>
-    <polygon points="253,20 333,205 385,157" fill="#E3E7EC"/>
-    <polygon points="121,157 173,205 121,316" fill="#EEF0F3"/>
-    <polygon points="385,157 333,205 385,316" fill="#E1E5EA"/>
-    <polygon points="121,316 173,205 211,300 253,400" fill="#E2E6EA"/>
-    <polygon points="121,316 211,300 253,400" fill="#F2F4F6"/>
-    <polygon points="385,316 333,205 295,300 253,400" fill="#EDF0F3"/>
-    <polygon points="385,316 295,300 253,400" fill="#F7F8F9"/>
-    <polygon points="211,300 253,312 253,400" fill="#E4E8EC"/>
-    <polygon points="253,312 295,300 253,400" fill="#EDF0F3"/>
-    <polygon points="253,124 333,205 295,300 253,312 211,300 173,205" fill="#0E0E12" fill-opacity="0"/>
-    <path d="M253,20 L173,205 M253,20 L253,124 M253,20 L333,205 M253,124 L173,205 M253,124 L333,205 M121,157 L173,205 M385,157 L333,205 M173,205 L121,316 M333,205 L385,316 M173,205 L253,400 M333,205 L253,400" fill="none" stroke="url(#silver)" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/>
-    <polygon points="253,20 385,157 385,316 253,400 121,316 121,157" fill="none" stroke="url(#silver)" stroke-width="11" stroke-linejoin="round"/>
-  </g>
+<path d="M512,132 L769,358 L769,623 L512,808 L255,623 L255,358 Z M512,334 L594,422 L558,495 L512,526 L466,495 L430,422 Z" fill="#B7BDC5" fill-rule="evenodd"/>
 </svg>

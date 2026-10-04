@@ -14,3 +14,7 @@ key.properties
 *.iml
 .idea/
 *.log
+
+AGENTS.md
+/graphify-out
+/.codex
